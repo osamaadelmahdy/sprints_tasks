@@ -1,0 +1,6 @@
+FROM httpd:latest
+COPY ./index.html /usr/local/apache2/htdocs/
+COPY shellhttpd.conf /home/shellhttpd/
+EXPOSE 9999
+ENV CONTAINER=docker
+ENTRYPOINT [ "echo ${CONTAINER}" ]
