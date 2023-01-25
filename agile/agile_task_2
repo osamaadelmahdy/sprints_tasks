@@ -1,0 +1,23 @@
+Sprint Goal:
+		- Build the system base and provide users the way to register and login into the system by passwords and third parties
+		
+Team Capacity:
+		- 4 members per team
+		- 40 hours per week
+		- 160 hours per sprint
+		
+User Stories Backlog:
+		- I can sign up via my email and password
+		- I can confirm my email to enter the system
+		- I can log in via my email and password
+		- I can signup/in via my Facebook account and directly log into the system
+		
+Sprint Tasks:
+		- Design and create users' database
+		- Implement user creation logic
+		- Implement confirmation email flow
+		- Expose signup API
+		- Expose confirm email API
+		- Design signup page
+		- Design confirmation email template
+		- Integrate with signup API from signup page
