@@ -1,0 +1,181 @@
+- hosts: all
+  become: true
+
+  # tasks:
+  #   - name: Install Java
+  #     yum:
+  #       name: java-1.8.0-openjdk
+  #       state: present
+  #   - name: Add Jenkins repository
+  #     yum_repository:
+  #       name: jenkins
+  #       description: Jenkins repository
+  #       baseurl: https://pkg.jenkins.io/redhat-stable
+  #       gpgcheck: true
+  #       gpgkey: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+  #       enabled: yes
+  #   - name: Install Jenkins
+  #     yum:
+  #       name: jenkins
+  #       state: present
+
+  #   - name: Start Jenkins
+  #     service:
+  #       name: jenkins
+  #       state: started
+  #       enabled: true
+
+  # -----------------------
+- name: Install Jenkins
+  hosts: all
+  become: true
+  tasks:
+    - name: Update system packages
+      yum:
+        name: '*'
+        state: latest
+      become: true
+
+    - name: Add Jenkins repository
+      get_url:
+        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+      become: true
+
+    - name: Import Jenkins GPG key
+      rpm_key:
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+      become: true
+
+    - name: Install Java
+      become: true
+      yum:
+        name: java-11-amazon-corretto
+        state: present
+
+    - name: Install Jenkins
+      yum:
+        name: jenkins
+        state: latest
+      become: true
+
+    - name: Enable Jenkins service
+      service:
+        name: jenkins
+        enabled: true
+        state: started
+      become: true
+
+    - name: Retrieve initial admin password
+      command: 'sudo cat /var/lib/jenkins/secrets/initialAdminPassword'
+      register: jenkins_password
+
+    - name: Display Jenkins initial admin password
+      debug:
+        var: jenkins_password.stdout
+    # -------------------------
+    - name: Install and Configure Jenkins
+  hosts: all
+  become: true
+  vars:
+    jenkins_admin_username: admin
+    jenkins_admin_password: admin_password
+  tasks:
+    - name: Install Jenkins
+      yum:
+        name: java-1.8.0-openjdk-headless,jenkins
+        state: latest
+
+    - name: Start Jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Wait for Jenkins to start up
+      uri:
+        url: http://localhost:8080/login
+        method: HEAD
+        return_content: no
+        status_code: 200
+        timeout: 300
+      register: jenkins_service
+
+    - name: Get Jenkins admin password
+      command: sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_admin_password
+      when: jenkins_service.status == 200
+
+    - name: Install Jenkins plugins
+      jenkins_plugin:
+        name:
+          - git
+          - github
+          - pipeline
+          - blueocean
+        url: http://localhost:8080/
+        username: "{{ jenkins_admin_username }}"
+        password: "{{ jenkins_admin_password.stdout }}"
+        timeout: 120
+
+    - name: Create Jenkins admin user
+      jenkins_user:
+        name: "{{ jenkins_admin_username }}"
+        password: "{{ jenkins_admin_password.stdout }}"
+        email: "admin@example.com"
+        state: present
+        force: yes
+        url: http://localhost:8080/
+        username: "{{ jenkins_admin_username }}"
+        password: "{{ jenkins_admin_password.stdout }}"
+        timeout: 120
+
+    - name: Configure Jenkins security
+      jenkins_script:
+        script: |
+          import jenkins.model.*
+          import hudson.security.*
+          import org.jenkinsci.plugins.*
+          def instance = Jenkins.getInstance()
+          def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+          hudsonRealm.createAccount("{{ jenkins_admin_username }}", "{{ jenkins_admin_password.stdout }}")
+          instance.setSecurityRealm(hudsonRealm)
+          def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+          instance.setAuthorizationStrategy(strategy)
+          instance.save()
+        url: http://localhost:8080/
+        username: "{{ jenkins_admin_username }}"
+        password: "{{ jenkins_admin_password.stdout }}"
+        timeout: 120
+    # ----------------------
+# - name: Install Jenkins
+#   become: true
+#   apt:
+#     name: jenkins
+#     update_cache: yes
+
+# - name: Install AWS CLI
+#   become: true
+#   apt:
+#     name: awscli
+#     update_cache: yes
+
+# - name: Install kubectl
+#   become: true
+#   apt:
+#     name: kubectl
+#     update_cache: yes
+
+# - name: Add AWS credentials to Jenkins
+#   become: true
+#   command: |
+#     sudo su - jenkins -c "aws configure set aws_access_key_id <YOUR_ACCESS_KEY>"
+#     sudo su - jenkins -c "aws configure set aws_secret_access_key <YOUR_SECRET_KEY>"
+#     sudo su - jenkins -c "aws configure set region us-west-2"
+
+# - name: Add Kubernetes access to Jenkins
+#   become: true
+#   command: |
+#     sudo su - jenkins -c "mkdir -p /var/lib/jenkins/.kube"
+#     sudo su - jenkins -c "echo '<YOUR_KUBECONFIG_CONTENT>' > /var/lib/jenkins/.kube/config"
+#     sudo su - jenkins -c "chown -R jenkins:jenkins /var/lib/jenkins/.kube"
