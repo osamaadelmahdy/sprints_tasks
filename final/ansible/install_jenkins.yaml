@@ -47,11 +47,8 @@
         key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
       become: true
 
-    - name: Install Java
-      become: true
-      yum:
-        name: java-11-amazon-corretto
-        state: present
+    - name: Install OpenJDK 11 on Amazon Linux 2
+      command: sudo amazon-linux-extras install java-openjdk11 -y
 
     - name: Install Jenkins
       yum:
@@ -74,79 +71,79 @@
       debug:
         var: jenkins_password.stdout
     # -------------------------
-    - name: Install and Configure Jenkins
-  hosts: all
-  become: true
-  vars:
-    jenkins_admin_username: admin
-    jenkins_admin_password: admin_password
-  tasks:
-    - name: Install Jenkins
-      yum:
-        name: java-1.8.0-openjdk-headless,jenkins
-        state: latest
+  #   - name: Install and Configure Jenkins
+  # hosts: all
+  # become: true
+  # vars:
+  #   jenkins_admin_username: admin
+  #   jenkins_admin_password: admin_password
+  # tasks:
+  #   - name: Install Jenkins
+  #     yum:
+  #       name: java-1.8.0-openjdk-headless,jenkins
+  #       state: latest
 
-    - name: Start Jenkins service
-      systemd:
-        name: jenkins
-        state: started
-        enabled: yes
+  #   - name: Start Jenkins service
+  #     systemd:
+  #       name: jenkins
+  #       state: started
+  #       enabled: yes
 
-    - name: Wait for Jenkins to start up
-      uri:
-        url: http://localhost:8080/login
-        method: HEAD
-        return_content: no
-        status_code: 200
-        timeout: 300
-      register: jenkins_service
+  #   - name: Wait for Jenkins to start up
+  #     uri:
+  #       url: http://localhost:8080/login
+  #       method: HEAD
+  #       return_content: no
+  #       status_code: 200
+  #       timeout: 300
+  #     register: jenkins_service
 
-    - name: Get Jenkins admin password
-      command: sudo cat /var/lib/jenkins/secrets/initialAdminPassword
-      register: jenkins_admin_password
-      when: jenkins_service.status == 200
+  #   - name: Get Jenkins admin password
+  #     command: sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+  #     register: jenkins_admin_password
+  #     when: jenkins_service.status == 200
 
-    - name: Install Jenkins plugins
-      jenkins_plugin:
-        name:
-          - git
-          - github
-          - pipeline
-          - blueocean
-        url: http://localhost:8080/
-        username: "{{ jenkins_admin_username }}"
-        password: "{{ jenkins_admin_password.stdout }}"
-        timeout: 120
+  #   - name: Install Jenkins plugins
+  #     jenkins_plugin:
+  #       name:
+  #         - git
+  #         - github
+  #         - pipeline
+  #         - blueocean
+  #       url: http://localhost:8080/
+  #       username: "{{ jenkins_admin_username }}"
+  #       password: "{{ jenkins_admin_password.stdout }}"
+  #       timeout: 120
 
-    - name: Create Jenkins admin user
-      jenkins_user:
-        name: "{{ jenkins_admin_username }}"
-        password: "{{ jenkins_admin_password.stdout }}"
-        email: "admin@example.com"
-        state: present
-        force: yes
-        url: http://localhost:8080/
-        username: "{{ jenkins_admin_username }}"
-        password: "{{ jenkins_admin_password.stdout }}"
-        timeout: 120
+  #   - name: Create Jenkins admin user
+  #     jenkins_user:
+  #       name: "{{ jenkins_admin_username }}"
+  #       password: "{{ jenkins_admin_password.stdout }}"
+  #       email: "admin@example.com"
+  #       state: present
+  #       force: yes
+  #       url: http://localhost:8080/
+  #       username: "{{ jenkins_admin_username }}"
+  #       password: "{{ jenkins_admin_password.stdout }}"
+  #       timeout: 120
 
-    - name: Configure Jenkins security
-      jenkins_script:
-        script: |
-          import jenkins.model.*
-          import hudson.security.*
-          import org.jenkinsci.plugins.*
-          def instance = Jenkins.getInstance()
-          def hudsonRealm = new HudsonPrivateSecurityRealm(false)
-          hudsonRealm.createAccount("{{ jenkins_admin_username }}", "{{ jenkins_admin_password.stdout }}")
-          instance.setSecurityRealm(hudsonRealm)
-          def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
-          instance.setAuthorizationStrategy(strategy)
-          instance.save()
-        url: http://localhost:8080/
-        username: "{{ jenkins_admin_username }}"
-        password: "{{ jenkins_admin_password.stdout }}"
-        timeout: 120
+  #   - name: Configure Jenkins security
+  #     jenkins_script:
+  #       script: |
+  #         import jenkins.model.*
+  #         import hudson.security.*
+  #         import org.jenkinsci.plugins.*
+  #         def instance = Jenkins.getInstance()
+  #         def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+  #         hudsonRealm.createAccount("{{ jenkins_admin_username }}", "{{ jenkins_admin_password.stdout }}")
+  #         instance.setSecurityRealm(hudsonRealm)
+  #         def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+  #         instance.setAuthorizationStrategy(strategy)
+  #         instance.save()
+  #       url: http://localhost:8080/
+  #       username: "{{ jenkins_admin_username }}"
+  #       password: "{{ jenkins_admin_password.stdout }}"
+  #       timeout: 120
     # ----------------------
 # - name: Install Jenkins
 #   become: true
