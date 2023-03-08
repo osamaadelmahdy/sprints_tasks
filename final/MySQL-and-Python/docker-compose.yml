@@ -1,0 +1,21 @@
+version: "2"
+services:
+  app:
+    build: ./app
+    links:
+      - db
+    ports:
+      - "5002:5002"
+    depends_on:
+      - db
+  db:
+    image: mysql:latest
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: "BucketList"
+      MYSQL_ROOT_PASSWORD: "my-secret-pw"
+      MYSQL_USER: osama
+      MYSQL_PASSWORD: 1234
+    volumes:
+      - ./SQL:/docker-entrypoint-initdb.d/:ro
