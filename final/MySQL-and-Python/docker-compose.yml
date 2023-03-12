@@ -1,6 +1,6 @@
-version: "2"
+version: "3.9"
 services:
-  app:
+  web:
     build: ./app
     links:
       - db
@@ -8,28 +8,24 @@ services:
       - "5002:5002"
     depends_on:
       - db
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DB: ${MYSQL_DB}
   db:
     image: mysql:latest
+    restart: always
     ports:
-      - "3307:3306"
+      - "3306:3306"
     environment:
-      MYSQL_DATABASE: "BucketList"
-      MYSQL_ROOT_PASSWORD: "my-secret-pw"
-      MYSQL_USER: osama
-      MYSQL_PASSWORD: 1234
-    # volumes:
-      # - ./SQL:/docker-entrypoint-initdb.d/:ro
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - dbdata:/var/lib/mysql
-      - ./SQL/create_userTable.sql:/docker-entrypoint-initdb.d/01_create_userTable.sql
-      - ./SQL/sp_createUser.sql:/docker-entrypoint-initdb.d/02_sp_createUser.sql
-      - ./SQL/sp_validateLogin.sql:/docker-entrypoint-initdb.d/03_sp_validateLogin.sql
-      - ./SQL/creat_wishList.sql:/docker-entrypoint-initdb.d/04_creat_wishList.sql
-      - ./SQL/sp_GetWishByUser.sql:/docker-entrypoint-initdb.d/05_sp_GetWishByUser.sql
-      - ./SQL/sp_GetWishById.sql:/docker-entrypoint-initdb.d/06_sp_GetWishById.sql
-      - ./SQL/sp_updateWish.sql:/docker-entrypoint-initdb.d/07_sp_updateWish.sql
-      - ./SQL/sp_addWish.sql:/docker-entrypoint-initdb.d/08_sp_addWish.sql
-      - ./SQL/sp_deleteWish.sql:/docker-entrypoint-initdb.d/09_sp_deleteWish.sql
+      - ./SQL:/docker-entrypoint-initdb.d/:ro
 
 volumes:
   dbdata:

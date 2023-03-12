@@ -1,16 +1,23 @@
 from flask import Flask, render_template, json, request, redirect, session
 from flaskext.mysql import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 mysql = MySQL()
 app = Flask(__name__)
 app.secret_key = 'why would I tell you my secret key?'
 
 # MySQL configurations
-app.config['MYSQL_DATABASE_USER'] = 'osama'
-app.config['MYSQL_DATABASE_PASSWORD'] = '1234'
-app.config['MYSQL_DATABASE_DB'] = 'BucketList'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+# app.config['MYSQL_DATABASE_USER'] = 'osama'
+# app.config['MYSQL_DATABASE_PASSWORD'] = '1234'
+# app.config['MYSQL_DATABASE_DB'] = 'BucketList'
+# app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['MYSQL_DATABASE_USER'] = os.getenv('MYSQL_USER')
+app.config['MYSQL_DATABASE_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
+app.config['MYSQL_DATABASE_DB'] = os.getenv('MYSQL_DB')
+app.config['MYSQL_DATABASE_HOST'] = os.getenv('MYSQL_HOST')
 mysql.init_app(app)
 # osama adel mahdy
 @app.route('/')

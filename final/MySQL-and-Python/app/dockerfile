@@ -2,6 +2,7 @@ FROM python:3.8-slim-buster
 WORKDIR /app
 RUN pip install Flask
 RUN pip install flask-mysql
+RUN pip install python-dotenv
 COPY . .
-EXPOSE 5002
-CMD ["python3", "app.py"]
+ENTRYPOINT ["python3"]
+CMD ["app.py"]
