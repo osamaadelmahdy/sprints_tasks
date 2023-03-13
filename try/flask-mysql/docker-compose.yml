@@ -6,7 +6,6 @@ services:
       - db
     ports:
       - '5000:5000'
-
   db:
     image: mysql:8.0.21
     ports:
