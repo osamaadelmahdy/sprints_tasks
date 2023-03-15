@@ -2,18 +2,29 @@ from typing import List, Dict
 from flask import Flask, render_template
 import mysql.connector
 import json
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 
-
-def test_table() -> List[Dict]:
-    config = {
-        'user': 'root',
-        'password': 'root',
-        'host': 'db',
-        'port': '3306',
-        'database': 'devopsroles'
+config = {
+        'user': os.getenv('MYSQL_USER'),
+        'password': os.getenv('MYSQL_PASSWORD'),
+        'host': os.getenv('MYSQL_HOST'),
+        'port': os.getenv('MYSQL_PORT'),
+        'database': os.getenv('MYSQL_DATABASE'),
+        'auth_plugin':'mysql_native_password'
     }
+print(config)
+def test_table() -> List[Dict]:
+    # config = {
+    #     'user': 'root',
+    #     'password': 'root',
+    #     'host': 'db',
+    #     'port': '3306',
+    #     'database': 'devopsroles'
+    # }
     connection = mysql.connector.connect(**config)
     cursor = connection.cursor()
     cursor.execute('SELECT * FROM test_table')
@@ -33,3 +44,4 @@ def index() -> str:
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
+    app.run(debug=True)
