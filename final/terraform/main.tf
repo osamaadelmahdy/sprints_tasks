@@ -1,90 +1,86 @@
-
 provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_vpc" "main" {
+# Create an EKS cluster
+resource "aws_eks_cluster" "example" {
+  name     = "example-cluster"
+  role_arn = aws_iam_role.eks.arn
+
+# Create an EKS cluster
+resource "aws_eks_cluster" "example" {
+  name     = "example-cluster"
+  role_arn = aws_iam_role.eks.arn
+
+  vpc_config {
+    subnet_ids = aws_subnet.private.*.id
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks,
+  ]
+}
+
+# Create an IAM role for EKS
+resource "aws_iam_role" "eks" {
+  name = "eks-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "eks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# Attach a policy to the EKS role
+resource "aws_iam_role_policy_attachment" "eks" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.eks.name
+}
+
+# Create a VPC for the EKS cluster
+resource "aws_vpc" "example" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "main"
+    Name = "example-vpc"
   }
 }
+# Create private subnets for the EKS cluster
+resource "aws_subnet" "private" {
+  count = 3
 
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
+  cidr_block = "10.0.${count.index + 1}.0/24"
+  vpc_id     = aws_vpc.example.id
 
   tags = {
-    Name = "main"
+    Name = "example-private-subnet-${count.index + 1}"
   }
 }
 
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
+# Create an Internet Gateway for the EKS cluster
+resource "aws_internet_gateway" "example" {
+  vpc_id = aws_vpc.example.id
 
   tags = {
-    Name = "public"
+    Name = "example-igw"
   }
 }
+# Create a NAT Gateway for the EKS cluster
+resource "aws_nat_gateway" "example" {
+  count = 3
 
-resource "aws_subnet" "public" {
-  vpc_id = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
+  allocation_id = aws_eip.example[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
 
   tags = {
-    Name = "public"
+    Name = "example-nat-gateway-${count.index + 1}"
   }
 }
-
-resource "aws_route_table_association" "public" {
-  subnet_id = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_security_group" "instance" {
-  name_prefix = "instance"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port = 8080
-    to_port = 8080
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_instance" "jenkins" {
-  ami           = "ami-006dcf34c09e50022"
-  instance_type = "t2.micro"
-  key_name      = "key-for-ec2"
-  security_groups = [aws_security_group.instance.id]
-  subnet_id = aws_subnet.public.id
-  associate_public_ip_address = true
-  tags = {
-    Name = "jenkins-server"
-  }
-}
-output "instance_public_ip" {
-  value = aws_instance.jenkins.public_ip
-}
-# instance_public_ip = "18.208.166.143"
-# /Users/Admin/Downloads/key-for-ec2.pem 
