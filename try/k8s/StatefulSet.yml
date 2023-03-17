@@ -2,11 +2,13 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
+  labels:
+    app: mysql
 spec:
   selector:
     matchLabels:
       app: mysql
-  serviceName: mysql
+  serviceName: mysql-service
   replicas: 1
   template:
     metadata:
@@ -14,38 +16,50 @@ spec:
         app: mysql
     spec:
       containers:
-      - name: mysql
-        image: mysql:5.6
-        env:
-          - name: MYSQL_ROOT_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: mysql-secret
-                key: password
-        ports:
-        - containerPort: 3306
-          name: mysql
-        volumeMounts:
-        - name: mysql-persistent-storage
-          mountPath: /var/lib/mysql
+        - name: mysql
+          image: mysql:5.6
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+          ports:
+            - containerPort: 3306
+              name: mysql
+          # resources:
+          #   requests:
+          #     cpu: "0.5"
+          #     memory: "512Mi"
+          #   limits:
+          #     cpu: "1"
+          #     memory: "1Gi"
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+            - name: mysql-initdb-volume
+              mountPath: /docker-entrypoint-initdb.d/init.sql
       volumes:
-      - name: mysql-persistent-storage
-        persistentVolumeClaim:
-          claimName: mysql-pv-claim
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
+        - name: mysql-initdb-volume
+          configMap:
+            name: mysql-initdb-configmap
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: db
+  name: mysql-service
   labels:
     app: mysql
 spec:
   ports:
-  - port: 3306
-    name: mysql
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
   selector:
     app: mysql
-  clusterIP: None
 ---
 apiVersion: v1
 kind: Secret
@@ -65,33 +79,37 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
-  storageClassName: local-path
+      storage: 500Mi
+  storageClassName: gp2-dynamic
 
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mysql-pv
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  local:
-    path: /mnt/data/mysql
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-                - minikube
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: local-path
-provisioner: k8s.io/minikube-hostpath
+  name: gp2-dynamic
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mysql-initdb-configmap
+data:
+  init.sql: |
+    create database devopsroles;
+    use devopsroles;
+
+    CREATE TABLE test_table (
+      name VARCHAR(20),
+      color VARCHAR(10)
+    );
+
+    INSERT INTO test_table
+      (name, color)
+    VALUES
+      ('dev', 'blue'),
+      ('pro', 'yellow');
