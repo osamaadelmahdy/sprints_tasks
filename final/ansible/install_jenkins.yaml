@@ -4,9 +4,9 @@
   become: true
   vars:
     jenkins_admin_username: admin
+    jenkins_admin_password: 1234
     admin_username: admin
     admin_password: 1234
-    jenkins_admin_password: your_admin_password_here
     jenkins_url: http://localhost:8080
     groovy_version: "4.0.9"
     ansible_python_interpreter: /usr/bin/python
@@ -132,3 +132,50 @@
       service:
         name: jenkins
         state: restarted
+
+    - name: Ensure a list of yum packages are installed
+      yum:
+        name: "{{ packages }}"
+        state: latest
+        update_cache: yes
+      vars:
+        packages:
+          - python-pip
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+          - amazon-linux-extras
+
+    - name: Add extras repository
+      shell: yum-config-manager --enable extras
+
+    - name: Install docker-ce (centos) via amazon-linux-extras packages
+      shell: "amazon-linux-extras install docker=18.06.1 -y"
+
+    - name: Enable Docker CE service at startup
+      service:
+        name: docker
+        state: started
+        enabled: yes
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Get public IP address
+      uri:
+        url: "http://checkip.amazonaws.com"
+        return_content: yes
+      register: public_ip
+
+    - name: Print public IP address
+      debug:
+        var: public_ip.content
+
+    # - name: Set JAVA_OPTS environment variable
+    #   become: yes
+    #   become_user: jenkins
+    #   environment:
+    #     JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+    #   command: /path/to/jenkins/startup_script.sh
