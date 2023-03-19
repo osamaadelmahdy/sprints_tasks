@@ -167,7 +167,7 @@
         path: /var/run/docker.sock
         owner: root
         group: docker
-        mode: '0660'
+        mode: "0660"
     - name: Restart Jenkins
       service:
         name: jenkins
@@ -176,6 +176,12 @@
       yum:
         name: git
         state: present
+
+    - name: Download kubectl
+      command: "curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/"
+
+    - name: Configure kubeconfig for EKS cluster
+      command: "aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster"
 
     - name: Get public IP address
       uri:
