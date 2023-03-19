@@ -128,11 +128,6 @@
         owner: jenkins
         group: jenkins
 
-    - name: Restart Jenkins
-      service:
-        name: jenkins
-        state: restarted
-
     - name: Ensure a list of yum packages are installed
       yum:
         name: "{{ packages }}"
@@ -162,6 +157,25 @@
         name: ec2-user
         groups: docker
         append: yes
+    - name: Add Jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+    - name: Set Docker socket permissions for Jenkins user
+      file:
+        path: /var/run/docker.sock
+        owner: root
+        group: docker
+        mode: '0660'
+    - name: Restart Jenkins
+      service:
+        name: jenkins
+        state: restarted
+    - name: Install Git
+      yum:
+        name: git
+        state: present
 
     - name: Get public IP address
       uri:
