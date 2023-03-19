@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1" # Replace with your desired region
+  region = "us-east-1"
 }
 
 resource "aws_iam_role" "eks_cluster_role" {
@@ -244,6 +244,28 @@ output "endpoint" {
 #   }
 # }
 
+# module "eks" {
+#   source                          = "terraform-aws-modules/eks/aws"
+#   cluster_name                    = "my-cluster"
+#   cluster_version                 = "1.17"
+#   subnets                         = module.vpc.private_subnets
+#   version                         = "12.2.0"
+#   cluster_create_timeout          = "1h"
+#   cluster_endpoint_private_access = true
+
+#   vpc_id = module.vpc.vpc_id
+
+#   worker_groups = [
+#     {
+#       name                          = "worker-group-1"
+#       instance_type                 = "t2.micro"
+#       additional_userdata           = "echo foo bar"
+#       asg_desired_capacity          = 1
+#       additional_security_group_ids = [aws_security_group.worker_group_mgmt_one.id]
+#     },
+#   ]
+
+# }
 
 
 
